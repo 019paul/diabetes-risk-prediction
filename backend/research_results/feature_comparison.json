@@ -1,0 +1,239 @@
+{
+  "experiment": "targeted_feature_exclusion_comparison",
+  "target": "self_reported_previous_diabetes_diagnosis",
+  "objective": "Classify self-reported previous diabetes diagnosis.",
+  "selection_method": "A priori feature-exclusion comparison; SHAP attribution is not used as a feature-selection method.",
+  "dataset": "NHANES 2017-2018 complete-case analytic sample",
+  "analytic_sample_n": 2288,
+  "analytic_sample_class_counts": {
+    "No self-reported previous diabetes diagnosis": 1890,
+    "Yes, self-reported previous diabetes diagnosis": 398
+  },
+  "model": "RandomForestClassifier",
+  "library_versions": {
+    "python": "3.14.7",
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit_learn": "1.9.1"
+  },
+  "model_parameters": {
+    "n_estimators": 500,
+    "random_state": 42
+  },
+  "evaluation_design": {
+    "holdout": "shared stratified 80/20 split",
+    "cross_validation": "shared stratified folds on training partition only",
+    "cross_validation_folds": 5,
+    "preprocessing_fit_scope": "fit independently within each training fold and training partition",
+    "metrics_are_unweighted": true,
+    "training_set": {
+      "n": 1830,
+      "class_counts": {
+        "No self-reported previous diabetes diagnosis": 1512,
+        "Yes, self-reported previous diabetes diagnosis": 318
+      }
+    },
+    "test_set": {
+      "n": 458,
+      "class_counts": {
+        "No self-reported previous diabetes diagnosis": 378,
+        "Yes, self-reported previous diabetes diagnosis": 80
+      }
+    }
+  },
+  "models": {
+    "baseline_all_eight": {
+      "features": [
+        "age",
+        "sex",
+        "bmi",
+        "hypertension",
+        "heart_disease",
+        "fasting_glucose",
+        "hba1c",
+        "smoking_history"
+      ],
+      "feature_count": 8,
+      "holdout": {
+        "n": 458,
+        "class_counts": {
+          "No self-reported previous diabetes diagnosis": 378,
+          "Yes, self-reported previous diabetes diagnosis": 80
+        },
+        "metrics": {
+          "accuracy": 0.9366812227074236,
+          "precision": 0.84,
+          "recall": 0.7875,
+          "f1": 0.8129032258064516,
+          "roc_auc": 0.9656911375661376
+        },
+        "confusion_matrix_labels": [
+          "documented_no",
+          "documented_yes"
+        ],
+        "confusion_matrix": [
+          [
+            366,
+            12
+          ],
+          [
+            17,
+            63
+          ]
+        ],
+        "classification_report": {
+          "No self-reported previous diabetes diagnosis": {
+            "precision": 0.9556135770234987,
+            "recall": 0.9682539682539683,
+            "f1-score": 0.961892247043364,
+            "support": 378.0
+          },
+          "Yes, self-reported previous diabetes diagnosis": {
+            "precision": 0.84,
+            "recall": 0.7875,
+            "f1-score": 0.8129032258064516,
+            "support": 80.0
+          },
+          "accuracy": 0.9366812227074236,
+          "macro avg": {
+            "precision": 0.8978067885117493,
+            "recall": 0.8778769841269841,
+            "f1-score": 0.8873977364249077,
+            "support": 458.0
+          },
+          "weighted avg": {
+            "precision": 0.9354190657530186,
+            "recall": 0.9366812227074236,
+            "f1-score": 0.9358679638578771,
+            "support": 458.0
+          }
+        }
+      },
+      "training_cross_validation": {
+        "folds": 5,
+        "metrics": {
+          "accuracy": {
+            "mean": 0.9136612021857923,
+            "std": 0.012460933607640867
+          },
+          "precision": {
+            "mean": 0.8079894454153214,
+            "std": 0.06636291101441877
+          },
+          "recall": {
+            "mean": 0.666765873015873,
+            "std": 0.06101608862606533
+          },
+          "f1": {
+            "mean": 0.7281138524501356,
+            "std": 0.04032199615679184
+          },
+          "roc_auc": {
+            "mean": 0.9443478956211215,
+            "std": 0.015398860549656885
+          }
+        }
+      }
+    },
+    "reduced_without_fasting_glucose_and_hba1c": {
+      "features": [
+        "age",
+        "sex",
+        "bmi",
+        "hypertension",
+        "heart_disease",
+        "smoking_history"
+      ],
+      "feature_count": 6,
+      "holdout": {
+        "n": 458,
+        "class_counts": {
+          "No self-reported previous diabetes diagnosis": 378,
+          "Yes, self-reported previous diabetes diagnosis": 80
+        },
+        "metrics": {
+          "accuracy": 0.8187772925764192,
+          "precision": 0.47619047619047616,
+          "recall": 0.375,
+          "f1": 0.4195804195804196,
+          "roc_auc": 0.7820436507936509
+        },
+        "confusion_matrix_labels": [
+          "documented_no",
+          "documented_yes"
+        ],
+        "confusion_matrix": [
+          [
+            345,
+            33
+          ],
+          [
+            50,
+            30
+          ]
+        ],
+        "classification_report": {
+          "No self-reported previous diabetes diagnosis": {
+            "precision": 0.8734177215189873,
+            "recall": 0.9126984126984127,
+            "f1-score": 0.8926261319534282,
+            "support": 378.0
+          },
+          "Yes, self-reported previous diabetes diagnosis": {
+            "precision": 0.47619047619047616,
+            "recall": 0.375,
+            "f1-score": 0.4195804195804196,
+            "support": 80.0
+          },
+          "accuracy": 0.8187772925764192,
+          "macro avg": {
+            "precision": 0.6748040988547317,
+            "recall": 0.6438492063492063,
+            "f1-score": 0.6561032757669238,
+            "support": 458.0
+          },
+          "weighted avg": {
+            "precision": 0.804033049845885,
+            "recall": 0.8187772925764192,
+            "f1-score": 0.8099980599232083,
+            "support": 458.0
+          }
+        }
+      },
+      "training_cross_validation": {
+        "folds": 5,
+        "metrics": {
+          "accuracy": {
+            "mean": 0.7950819672131149,
+            "std": 0.015334661421204696
+          },
+          "precision": {
+            "mean": 0.34924357099594194,
+            "std": 0.06558157150664255
+          },
+          "recall": {
+            "mean": 0.20461309523809526,
+            "std": 0.042817051169765016
+          },
+          "f1": {
+            "mean": 0.2568899312501437,
+            "std": 0.04907689590927171
+          },
+          "roc_auc": {
+            "mean": 0.722413503915434,
+            "std": 0.027457825810307646
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "The target is self-reported previous diagnosis, not future diabetes.",
+    "Fasting glucose and HbA1c may be related to diagnosis or its ascertainment.",
+    "The shared complete-case cohort requires glucose and HbA1c to be present even for the reduced-feature model; it does not establish performance in a broader population without laboratory measurements.",
+    "The data are from US NHANES 2017-2018 and are not automatically representative of Nigeria.",
+    "Metrics are unweighted and describe only this held-out complete-case analytic sample.",
+    "A single holdout split is subject to sampling variability; no confidence intervals or hypothesis tests were estimated.",
+    "SHAP explains model outputs; attribution is not causal evidence or feature selection."
+  ]
+}

@@ -21,14 +21,20 @@ import { useAssessmentReport } from './lib/useAssessmentReport.js'
 import { useAuth } from './lib/useAuth.js'
 import { getPredictionHistory, savePredictionSummary } from './lib/history.js'
 import { getPredictionDisplay } from './lib/prediction.js'
+import StaffWorkspace from './staff/StaffWorkspace.jsx'
 import './App.css'
+
+const MEDICAL_DISCLAIMER = 'This application is developed for academic research and educational purposes only. It is not a medical diagnostic tool and must not be used to diagnose diabetes, determine treatment, or replace professional medical advice. Any model output is an estimate based on the model and data used, and it may be inaccurate. Consult a qualified healthcare professional for medical assessment.'
 
 const routes = [
   { label: 'Home', to: '/' },
-  { label: 'Learn and Live Well', to: '/education' },
-  { label: 'About', to: '/about' },
-  { label: 'Services', to: '/services' },
+  { label: 'About Research', to: '/about' },
+  { label: 'Methodology', to: '/methodology' },
+  { label: 'Risk Prediction', to: '/assessment' },
+  { label: 'Model Explainability', to: '/explainability' },
+  { label: 'Validation', to: '/validation' },
   { label: 'Contact', to: '/contact' },
+  { label: 'Staff demo', to: '/staff' },
 ]
 
 function Icon({ name, size = 20, className = '' }) {
@@ -141,6 +147,10 @@ function ModelMetrics({ evaluation, analyticSample }) {
     ['f1', 'F1 score'],
     ['roc_auc', 'ROC AUC'],
   ]
+  const confusionMatrix = test.confusion_matrix
+  const hasConfusionMatrix = Array.isArray(confusionMatrix)
+    && confusionMatrix.length === 2
+    && confusionMatrix.every((row) => Array.isArray(row) && row.length === 2)
   return (
     <>
       <div className="model-metric-grid">
@@ -160,6 +170,23 @@ function ModelMetrics({ evaluation, analyticSample }) {
       {test.class_counts && <p className="model-metric-caption">
         Held-out class counts: {Object.entries(test.class_counts).map(([label, count]) => `${label}: ${count}`).join('; ')}.
       </p>}
+      <p className="model-metric-caption">
+        Recall (sensitivity) measures how many held-out “Yes” records were identified; precision measures how many predicted “Yes” records were correct. ROC AUC summarizes discrimination across thresholds.
+      </p>
+      {hasConfusionMatrix && (
+        <div className="confusion-matrix-wrap">
+          <table className="confusion-matrix">
+            <caption>Held-out confusion matrix · actual rows, predicted columns</caption>
+            <thead>
+              <tr><th scope="col">Actual / predicted</th><th scope="col">No previous diagnosis</th><th scope="col">Previous diagnosis</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">No previous diagnosis</th><td>{confusionMatrix[0][0]}</td><td>{confusionMatrix[0][1]}</td></tr>
+              <tr><th scope="row">Previous diagnosis</th><td>{confusionMatrix[1][0]}</td><td>{confusionMatrix[1][1]}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   )
 }
@@ -191,6 +218,7 @@ function Header() {
         </Link>
 
         <button
+          aria-controls="main-navigation"
           aria-expanded={menuOpen}
           aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           className="menu-toggle"
@@ -200,7 +228,7 @@ function Header() {
           <Icon name="menu" size={23} />
         </button>
 
-        <nav aria-label="Main navigation" className={`main-nav ${menuOpen ? 'is-open' : ''}`}>
+        <nav aria-label="Main navigation" className={`main-nav ${menuOpen ? 'is-open' : ''}`} id="main-navigation">
           {routes.map((route) => (
             <NavLink
               end={route.to === '/'}
@@ -241,8 +269,8 @@ function Footer() {
           <p>Diabetes Risk Prediction and Feature Selection in a Web Application Using Random Forest and SHAP Analysis.</p>
         </div>
         <div className="footer-links">
-          <div><strong>Explore</strong><Link to="/education">Diabetes education</Link><Link to="/about">About the project</Link><Link to="/services">Research services</Link><Link to="/contact">Contact</Link></div>
-          <div><strong>Workspace</strong><Link to="/dashboard">Dashboard</Link><Link to="/assessment">Assessment preview</Link><Link to="/history">History status</Link></div>
+          <div><strong>Explore</strong><Link to="/education">Diabetes education</Link><Link to="/about">About the research</Link><Link to="/methodology">Methodology</Link><Link to="/explainability">Model explainability</Link><Link to="/validation">Validation and testing</Link><Link to="/services">Research services</Link><Link to="/contact">Contact</Link></div>
+          <div><strong>Workspace</strong><Link to="/staff">Hospital workspace demo</Link><Link to="/dashboard">Dashboard</Link><Link to="/assessment">Assessment preview</Link><Link to="/history">History status</Link></div>
           <div><strong>Contact</strong><a href="tel:07068432364">07068432364</a><a href="https://wa.me/2347068432364" rel="noreferrer" target="_blank">WhatsApp 07068432364</a><a href="mailto:olufunsho19@gmail.com">olufunsho19@gmail.com</a></div>
         </div>
       </div>
@@ -265,21 +293,20 @@ function PageIntro({ eyebrow, title, description }) {
 }
 
 function Home() {
-  const auth = useAuth()
-
   return (
     <>
       <section className="hero-section">
         <div className="hero-copy">
           <span className="eyebrow"><span className="eyebrow-dot" /> Faith Clinic · HND II academic project</span>
-          <h1>Learn about diabetes.<br /><span>Explore the research.</span></h1>
-          <p className="hero-lede">Find general educational information, explore the research approach, and look for nearby healthcare facilities. Clear boundaries help keep education separate from medical care.</p>
+          <h1>Diabetes risk prediction<br /><span>and feature selection.</span></h1>
+          <p className="hero-project-title">Diabetes Risk Prediction and Feature Selection in a Web Application Using Random Forest and SHAP Analysis</p>
+          <p className="hero-lede">An academic research application exploring a Random Forest model and SHAP explanations for classifying self-reported previous diabetes diagnosis in US NHANES 2017–2018 data.</p>
           <div className="hero-actions">
-            <Link className="button" to={auth.user ? '/dashboard' : '/login'}>{auth.user ? 'Open research workspace' : 'Sign in'} <Icon name="arrow" size={17} /></Link>
-            <Link className="button button-outline" to="/signup">Create account</Link>
+            <Link className="button" to="/assessment">Explore the assessment <Icon name="arrow" size={17} /></Link>
+            <Link className="button button-outline" to="/methodology">Read the methodology</Link>
           </div>
           <div className="hero-secondary-actions">
-            <Link className="text-link" to="/results#facility-title">Find a healthcare facility <Icon name="arrow" size={15} /></Link>
+            <Link className="text-link" to="/about">About the research <Icon name="arrow" size={15} /></Link>
             <Link className="text-link" to="/contact">Contact Faith Clinic</Link>
           </div>
         </div>
@@ -309,15 +336,46 @@ function Home() {
         <div><Icon name="users" /><span><strong>Student project</strong><small>No clinic accreditation or care service is implied</small></span></div>
       </section>
 
+      <Notice>{MEDICAL_DISCLAIMER}</Notice>
+
       <section className="section-block home-overview">
         <div className="section-heading">
-          <div><span className="eyebrow">EXPLORE FAITH CLINIC</span><h2>Start with useful information.</h2></div>
-          <p>Learn at your own pace, understand what this academic project can and cannot tell you, and use the facility finder with its source limitations in mind.</p>
+          <div><span className="eyebrow">THE RESEARCH APPROACH</span><h2>Methods, made understandable.</h2></div>
+          <p>This project studies an existing, documented dataset and evaluated model. Its outputs are research classifications, not personal diagnoses or future-risk estimates.</p>
         </div>
         <div className="feature-grid">
-          <article className="feature-card"><span className="feature-icon"><Icon name="heart" size={22} /></span><span className="card-kicker">LEARN</span><h3>Learn and Live Well</h3><p>Explore general diabetes education, healthy food ideas, everyday wellbeing, and answers to common questions.</p><Link className="text-link" to="/education">Explore the learning centre <Icon name="arrow" size={15} /></Link></article>
-          <article className="feature-card feature-card-highlight"><span className="feature-icon"><Icon name="spark" size={22} /></span><span className="card-kicker">RESEARCH</span><h3>Understand the study</h3><p>See how the Random Forest and SHAP work relates to self-reported previous diagnosis—not a personal diagnosis or future risk.</p><Link className="text-link" to="/about">About the project <Icon name="arrow" size={15} /></Link></article>
-          <article className="feature-card"><span className="feature-icon"><Icon name="map" size={22} /></span><span className="card-kicker">DIRECTORY</span><h3>Look for a facility</h3><p>Search nearby listings where available. Community map entries are not proof of registration, opening hours, or service availability.</p><Link className="text-link" to="/results#facility-title">Open facility finder <Icon name="arrow" size={15} /></Link></article>
+          <article className="feature-card"><span className="feature-icon"><Icon name="users" size={22} /></span><span className="card-kicker">ABOUT</span><h3>A defined research question</h3><p>The model target is self-reported previous diabetes diagnosis in an adult NHANES complete-case sample.</p><Link className="text-link" to="/about">Read the project scope <Icon name="arrow" size={15} /></Link></article>
+          <article className="feature-card feature-card-highlight"><span className="feature-icon"><Icon name="clipboard" size={22} /></span><span className="card-kicker">METHODS</span><h3>Random Forest and SHAP</h3><p>Review the model workflow, actual evaluation metrics, and the limits of feature attribution.</p><Link className="text-link" to="/methodology">Explore the methodology <Icon name="arrow" size={15} /></Link></article>
+          <article className="feature-card"><span className="feature-icon"><Icon name="shield" size={22} /></span><span className="card-kicker">VERIFICATION</span><h3>What has been checked?</h3><p>See the live backend status separately from checks that still need manual or automated testing.</p><Link className="text-link" to="/validation">Review validation status <Icon name="arrow" size={15} /></Link></article>
+        </div>
+      </section>
+
+      <section className="section-block research-methods" aria-labelledby="research-methods-title">
+        <div className="section-heading">
+          <div><span className="eyebrow">MODEL OVERVIEW</span><h2 id="research-methods-title">A model is a tool—not a diagnosis.</h2></div>
+          <p>These methods are presented with the research target, dataset, and limitations alongside them.</p>
+        </div>
+        <div className="research-method-grid">
+          <article className="research-method-card">
+            <span className="feature-icon"><Icon name="spark" size={21} /></span>
+            <h3>Random Forest</h3>
+            <p>A collection of decision trees combines their outputs to classify patterns in the prepared study data. Its measured performance applies to the reported held-out sample only.</p>
+          </article>
+          <article className="research-method-card">
+            <span className="feature-icon"><Icon name="clipboard" size={21} /></span>
+            <h3>SHAP explanations</h3>
+            <p>SHAP attributes parts of a model output to input features. These contributions describe model behavior; they do not prove causation or clinical importance.</p>
+          </article>
+          <article className="research-method-card">
+            <span className="feature-icon"><Icon name="check" size={21} /></span>
+            <h3>Research workflow</h3>
+            <p>Document data, prepare and check it, compare feature sets, evaluate the model, interpret outputs, then verify the web integration and limitations.</p>
+          </article>
+        </div>
+        <div className="research-home-links">
+          <Link className="text-link" to="/explainability">How to read an explanation <Icon name="arrow" size={15} /></Link>
+          <Link className="text-link" to="/education">Learn and Live Well <Icon name="arrow" size={15} /></Link>
+          <Link className="text-link" to="/results#facility-title">Find a healthcare facility <Icon name="arrow" size={15} /></Link>
         </div>
       </section>
 
@@ -489,15 +547,23 @@ function About() {
   const backend = useBackendStatus()
   return (
     <div className="content-page">
-      <PageIntro eyebrow="ABOUT THE PROJECT" title="Research with clarity." description="A research-based healthcare information service using machine learning and interpretable explanations." />
+      <PageIntro eyebrow="ABOUT THE RESEARCH" title="A defined question, with clear limits." description="Diabetes Risk Prediction and Feature Selection in a Web Application Using Random Forest and SHAP Analysis is an HND II academic research project—not a clinical service." />
       <div className="about-layout">
         <section className="prose-panel">
-          <span className="eyebrow">PROJECT OVERVIEW</span>
+          <span className="eyebrow">BACKGROUND AND PROBLEM</span>
           <h2>What this project is exploring</h2>
-          <p><strong>Diabetes Risk Prediction and Feature Selection in a Web Application Using Random Forest and SHAP Analysis</strong> is an HND II academic research project. The configured Random Forest classifier and SHAP endpoint explain the model’s classification of previous self-reported diagnoses.</p>
-          <p>For the current approved dataset plan, the model task is to classify a participant’s self-reported previous diabetes diagnosis in NHANES 2017–2018. It does not predict future diabetes and is not a medical diagnosis tool.</p>
-          <h3>Why explainability?</h3>
-          <p>Machine-learning models can be difficult to interpret. The backend includes a SHAP endpoint that uses the fitted model pipeline when an evaluated model is configured. Contributions explain model behavior; they are not evidence that a feature causes a health outcome.</p>
+          <p>Diabetes research datasets contain multiple demographic and health measures. A supervised model can examine how combinations of these recorded features relate to an explicitly defined target, but model outputs can be difficult to interpret and can be mistaken for clinical conclusions.</p>
+          <p>This project uses US NHANES 2017–2018 complete-case data to classify <strong>self-reported previous diabetes diagnosis</strong>. It does not predict future diabetes, identify undiagnosed disease, or establish a medical diagnosis. Results are not Nigerian-population estimates.</p>
+          <h3>Aim and objectives</h3>
+          <p>The aim is to implement and evaluate a web application that presents a Random Forest research classification with feature-selection comparison and interpretable-model research context.</p>
+          <ul>
+            <li>Prepare documented NHANES measures and define the target without mapping unknown responses to “No”.</li>
+            <li>Train and evaluate a Random Forest model using a stratified holdout and training-only cross-validation.</li>
+            <li>Compare the baseline feature set with a pre-specified reduced set excluding fasting glucose and HbA1c.</li>
+            <li>Integrate validated inputs, model inference, and per-assessment SHAP explanations into the web application.</li>
+          </ul>
+          <h3>Significance and scope</h3>
+          <p>The application demonstrates a transparent machine-learning workflow and makes evaluation and explanation limitations visible to reviewers. Its scope is an academic prototype using the documented complete-case cohort; it does not offer clinical workflow, treatment guidance, or future-risk estimation.</p>
         </section>
         <aside className="project-facts">
           <span className="eyebrow">PROJECT AT A GLANCE</span>
@@ -505,16 +571,198 @@ function About() {
             <div><dt>Study data</dt><dd>Prepared NHANES 2017–2018 research dataset</dd></div>
             <div><dt>Study group</dt><dd>Adults aged 20 and older</dd></div>
             <div><dt>Model approach</dt><dd>Random Forest classifier</dd></div>
-            <div><dt>Explanation method</dt><dd>SHAP feature attributions</dd></div>
+            <div><dt>Implemented</dt><dd>Prepared data, Random Forest evaluation, API prediction, and per-assessment SHAP endpoint</dd></div>
+            <div><dt>Conditional</dt><dd>SHAP generation requires its optional backend dependency</dd></div>
+            <div><dt>Not claimed</dt><dd>Clinical validation, future-onset prediction, or Nigerian population performance</dd></div>
             <div><dt>API status</dt><dd><span className={`status-pill ${backend.online ? 'status-online' : ''}`}>{backend.loading ? 'Checking backend' : backend.online ? 'Backend API available' : 'Backend API unavailable'}</span></dd></div>
           </dl>
         </aside>
       </div>
+      <section className="about-architecture">
+        <article className="research-detail-card">
+          <span className="eyebrow">SYSTEM ARCHITECTURE</span>
+          <h2>How the parts connect</h2>
+          <p>React/Vite presents the research pages and form. The Flask API validates each request and loads the matching model and evaluation artifacts before inference. SHAP is generated by the backend when its optional dependency is available. Supabase is separate and supports optional account authentication and minimal prediction summaries only.</p>
+        </article>
+        <article className="research-detail-card">
+          <span className="eyebrow">LIMITATIONS</span>
+          <h2>What the results cannot establish</h2>
+          <p>The complete-case sample is drawn from US NHANES 2017–2018; self-report can miss undiagnosed cases, and fasting glucose or HbA1c may be related to diagnosis or ascertainment. A single unweighted holdout has sampling variability. Neither performance metrics nor SHAP values establish clinical safety, causation, or suitability for care.</p>
+        </article>
+      </section>
       <section className="researcher-details" aria-label="Researcher information">
         <span className="eyebrow">RESEARCHER</span>
         <p><strong>Edun olufunsho Paul</strong><span>Matriculation number: H/CS/23/1189</span></p>
       </section>
-      <Notice>Faith Clinic's diabetes assessment provides research-based model predictions and educational information. It does not establish a medical diagnosis. Consult a qualified healthcare professional for appropriate testing, assessment, and treatment.</Notice>
+      <Notice>{MEDICAL_DISCLAIMER}</Notice>
+    </div>
+  )
+}
+
+function Methodology() {
+  const backend = useBackendStatus()
+  const explorationReady = backend.exploration?.ok && backend.exploration.data?.status === 'ready'
+  const steps = [
+    { number: '01', title: 'Dataset selection and documentation', status: 'Implemented', description: 'Public US NHANES 2017–2018 component files are joined by participant ID. The target is self-reported previous diagnosis, not future onset.' },
+    { number: '02', title: 'Quality checks and preprocessing', status: 'Implemented', description: 'The preparation workflow checks source records, joins, eligibility, missingness, and complete-case fields. Unknown or refused target responses are not treated as “No”.' },
+    { number: '03', title: 'Exploratory data analysis', status: 'Not implemented', description: 'A separate exploratory-analysis report and interactive distribution dashboard are not currently part of the application.' },
+    { number: '04', title: 'Feature selection comparison', status: 'Implemented', description: 'A targeted feature-exclusion experiment compares the eight-feature baseline with a six-feature model excluding fasting glucose and HbA1c. SHAP is not used as a selection method.' },
+    { number: '05', title: 'Random Forest training and evaluation', status: 'Implemented', description: 'The serving model is evaluated with a stratified 80/20 holdout and five-fold cross-validation on the training partition. Preprocessing is fit on training data only.' },
+    { number: '06', title: 'SHAP interpretation', status: 'Conditional', description: 'The API implements individual tree-model explanations when the optional SHAP dependency is installed. There is no global SHAP summary dashboard.' },
+    { number: '07', title: 'Web application integration', status: 'Implemented', description: 'The React form calls the existing Flask validation, prediction, and explanation endpoints. Results are not fabricated when requests fail.' },
+    { number: '08', title: 'Testing and responsible interpretation', status: 'Partially implemented', description: 'Automated frontend and backend tests exist. Responsive, accessibility, and manual end-to-end checks still require review; see Validation.' },
+  ]
+
+  return (
+    <div className="content-page">
+      <PageIntro eyebrow="METHODOLOGY" title="From documented data to cautious interpretation." description="The steps below distinguish implemented work from work that is incomplete or not part of this application." />
+      <section className="methodology-steps" aria-label="Research workflow">
+        {steps.map((step) => (
+          <article className="methodology-step" key={step.number}>
+            <span className="service-number">{step.number}</span>
+            <div><h2>{step.title}<span className={`method-status method-status-${step.status.toLowerCase().replaceAll(' ', '-')}`}>{step.status}</span></h2><p>{step.description}</p></div>
+          </article>
+        ))}
+      </section>
+      <section className="research-detail-grid">
+        <article className="research-detail-card">
+          <span className="eyebrow">WHY RANDOM FOREST?</span>
+          <h2>Flexible pattern classification</h2>
+          <p>A Random Forest combines many decision trees, which can represent nonlinear relationships and interactions in tabular data. This project uses it as a research classifier; its performance on one holdout does not prove that the model is clinically useful or generalizable.</p>
+        </article>
+        <article className="research-detail-card">
+          <span className="eyebrow">WHY SHAP?</span>
+          <h2>Explaining model output</h2>
+          <p>SHAP assigns feature contributions to a particular model output. A contribution can push that output up or down on the model’s attribution scale. It does not show that a feature caused diabetes, and it is not a clinical risk score.</p>
+        </article>
+      </section>
+      <section aria-labelledby="evaluation-title" className="exploration-panel research-evaluation">
+        <div className="section-heading">
+          <div><span className="eyebrow">LIVE MODEL EVALUATION</span><h2 id="evaluation-title">Measured held-out performance</h2></div>
+          <span className={`status-pill ${explorationReady ? 'status-online' : ''}`}>{backend.loading ? 'Checking API' : explorationReady ? 'Loaded from model API' : 'Metrics unavailable'}</span>
+        </div>
+        {explorationReady
+          ? <ModelMetrics analyticSample={backend.exploration.data.analytic_sample} evaluation={backend.exploration.data.evaluation} />
+          : <p>{backend.exploration?.data?.message || backend.error || 'Start the Flask API to read the actual evaluation artifact. No metrics are substituted or generated in the browser.'}</p>}
+        <p className="form-footnote">These unweighted metrics describe the held-out complete-case analytic sample only. The target is self-reported previous diagnosis. The sample is from the United States and does not establish future-onset prediction, Nigerian population performance, clinical safety, or suitability for care.</p>
+      </section>
+      <div className="inline-action">
+        <Link className="button button-outline" to="/explainability">Read about SHAP <Icon name="arrow" size={16} /></Link>
+        <Link className="button" to="/validation">Review verification status <Icon name="arrow" size={16} /></Link>
+      </div>
+    </div>
+  )
+}
+
+function Explainability() {
+  const backend = useBackendStatus()
+  const shapStatus = backend.explanation?.data?.status
+  const explanationAvailable = shapStatus === 'ready'
+
+  return (
+    <div className="content-page">
+      <PageIntro eyebrow="MODEL EXPLAINABILITY" title="What a model explanation can—and cannot—say." description="This project uses SHAP for individual outputs when the optional explanation dependency is available. No illustrative values are presented as research findings." />
+      <section className="explanation-readiness">
+        <div>
+          <span className="eyebrow">LIVE SERVICE CHECK</span>
+          <h2>Individual explanation availability</h2>
+          <p>{backend.loading
+            ? 'Checking the Flask model and SHAP service.'
+            : !backend.online
+              ? 'The Flask API is unavailable. No SHAP values have been requested or displayed.'
+              : explanationAvailable
+                ? 'The model and SHAP dependency are available. An individual explanation is generated with a real assessment request and shown on its result page.'
+                : backend.explanation?.data?.message || 'The SHAP service is currently unavailable. No explanation values are invented.'}</p>
+        </div>
+        <span className={`status-pill ${explanationAvailable ? 'status-online' : ''}`}>{backend.loading ? 'Checking' : explanationAvailable ? 'Service available' : 'Unavailable'}</span>
+      </section>
+      <section className="research-detail-grid">
+        <article className="research-detail-card">
+          <span className="eyebrow">GLOBAL FEATURE IMPORTANCE</span>
+          <h2>Patterns across data</h2>
+          <p>Global summaries aggregate behavior across many records. This application does not currently publish a global SHAP summary or feature-importance chart, so no overall feature ranking is shown here.</p>
+        </article>
+        <article className="research-detail-card">
+          <span className="eyebrow">INDIVIDUAL EXPLANATION</span>
+          <h2>Contributions for one output</h2>
+          <p>An individual SHAP result explains contributions to the specific model output for one submitted set of inputs. Positive and negative contributions refer to the model’s output scale, not a person’s medical risk.</p>
+        </article>
+      </section>
+      <section className="research-detail-card explanation-limitations">
+        <span className="eyebrow">INTERPRETATION LIMITS</span>
+        <h2>Attribution is not causation</h2>
+        <p>SHAP values depend on the trained model, input data, and explanation assumptions. Correlated features can affect attribution. A feature contribution does not prove biological causation, clinical significance, or that changing a feature would change health outcomes. The target itself is previous self-reported diagnosis.</p>
+      </section>
+      <div className="inline-action">
+        <Link className="button" to="/assessment">Open the research assessment <Icon name="arrow" size={16} /></Link>
+        <Link className="button button-outline" to="/methodology">Review methodology <Icon name="arrow" size={16} /></Link>
+      </div>
+      <Notice>{MEDICAL_DISCLAIMER}</Notice>
+    </div>
+  )
+}
+
+function Validation() {
+  const backend = useBackendStatus()
+  const backendStatus = backend.loading ? 'NOT TESTED' : backend.online ? 'PASS' : 'FAIL'
+  const modelStatus = backend.loading || !backend.online
+    ? 'NOT TESTED'
+    : !backend.info?.ok
+      ? 'FAIL'
+    : backend.info?.data?.model_status === 'ready'
+      ? 'PASS'
+      : 'BLOCKED'
+  const shapStatus = backend.loading || !backend.online
+    ? 'NOT TESTED'
+    : !backend.explanation?.ok
+      ? 'FAIL'
+    : backend.explanation?.data?.status === 'ready'
+      ? 'PASS'
+      : 'BLOCKED'
+  const checks = [
+    { name: 'Validation page rendering', status: 'PASS', detail: 'This page rendered. This does not verify the other routes or user workflows.' },
+    { name: 'Navigation across all routes', status: 'NOT TESTED', detail: 'Visit each navigation destination, including the mobile menu, in a browser test.' },
+    { name: 'Form validation and input ranges', status: 'NOT TESTED', detail: 'Validation exists in the form and API, but this page has not submitted test inputs.' },
+    { name: 'Frontend build and unit tests', status: 'NOT TESTED', detail: 'Run the listed commands separately; this page does not receive their results.' },
+    { name: 'Backend API connectivity', status: backendStatus, detail: backend.loading ? 'Waiting for the live health endpoint.' : backend.online ? 'The Flask health endpoint responded successfully. This confirms API availability only.' : backend.error || 'The Flask health endpoint did not respond successfully.' },
+    { name: 'Prediction endpoint inference', status: 'NOT TESTED', detail: 'This page does not send a synthetic assessment or create a prediction.' },
+    { name: 'Model artifact loading', status: modelStatus, detail: backend.loading || !backend.online ? 'Requires a live backend response.' : backend.info?.data?.model_status === 'ready' ? `Model ${backend.info.data.model_version || ''} and matching evaluation metadata are reported ready; this does not establish clinical validity.` : backend.info?.data?.message || backend.info?.data?.model_error || 'The backend did not report a ready model.' },
+    { name: 'Individual SHAP generation', status: 'NOT TESTED', detail: 'This page does not submit an assessment to generate an individual explanation.' },
+    { name: 'SHAP service readiness', status: shapStatus, detail: backend.loading || !backend.online ? 'Requires a live backend response.' : backend.explanation?.data?.message || 'The backend reports the SHAP service ready. This is not a test of an individual explanation.' },
+    { name: 'API error handling', status: 'NOT TESTED', detail: 'Error responses are covered by automated backend tests; browser error paths have not been manually exercised here.' },
+    { name: 'Patient record workflow', status: 'BLOCKED', detail: 'There is no patient registry, protected clinical-record storage, retention process, or clinical audit trail. Do not enter real patient information.' },
+    { name: 'Laboratory diagnostic pathway', status: 'BLOCKED', detail: 'No clinician-approved diagnostic criteria or laboratory-result workflow is implemented. The research model is not a diagnostic pathway.' },
+    { name: 'Clinician review and diagnosis', status: 'BLOCKED', detail: 'There are no clinician roles, assignments, review records, or authorized diagnosis workflow.' },
+    { name: 'Authentication and authorization', status: 'BLOCKED', detail: 'Optional Supabase sign-in and row-level-secured prediction history do not provide staff roles or protect the Flask prediction endpoints.' },
+    { name: 'Responsive layout', status: 'NOT TESTED', detail: 'Review the pages at mobile, tablet, and desktop viewport sizes.' },
+    { name: 'Accessibility checks', status: 'NOT TESTED', detail: 'Keyboard, screen-reader, and contrast checks require manual or dedicated accessibility testing.' },
+    { name: 'Security readiness', status: 'BLOCKED', detail: 'No hospital security assessment or production controls have been verified. CORS is not authentication; do not send patient data.' },
+    { name: 'Clinical validation', status: 'BLOCKED', detail: 'The model uses US NHANES self-reported prior diagnosis data and has no documented clinical validation for Nigerian patients or diagnosis.' },
+    { name: 'Production deployment readiness', status: 'BLOCKED', detail: 'HTTPS, production WSGI hosting, monitoring, backup/recovery, and operational approvals are not configured or verified.' },
+  ]
+
+  return (
+    <div className="content-page">
+      <PageIntro eyebrow="VALIDATION AND TESTING" title="Verification status, without guesswork." description="Live backend checks are reported from API responses. Checks that have not actually run remain Not Tested." />
+      <div className="validation-note"><Icon name="shield" size={19} /><p><strong>Current readiness: READY FOR TECHNICAL DEMONSTRATION; NOT READY FOR CLINICAL USE.</strong> This is an academic research application, not a hospital clinical service. A passing API or artifact check does not establish clinical validity, production security, or safe use for patient care. This page does not submit sample inputs or create test predictions.</p></div>
+      <div className="validation-list" role="list" aria-label="Project verification checklist">
+        {checks.map((check) => (
+          <article className="validation-row" key={check.name} role="listitem">
+            <div><h2>{check.name}</h2><p>{check.detail}</p></div>
+            <span className={`validation-status validation-status-${check.status.toLowerCase().replaceAll(' ', '-')}`}>{check.status}</span>
+          </article>
+        ))}
+      </div>
+      <section className="research-detail-card validation-commands">
+        <span className="eyebrow">REPEATABLE CHECKS</span>
+        <h2>Run the available project checks</h2>
+        <p>From the project folder in PowerShell, run <code>npm.cmd run build</code>, <code>npm.cmd run lint</code>, and <code>npm.cmd test</code>. Backend tests are available from the backend folder with <code>.\.venv\Scripts\python.exe -m unittest discover -s tests -p &quot;test_*.py&quot; -v</code>.</p>
+        <p>These commands verify software behavior, not clinical performance. Manual browser, responsive, keyboard, and accessibility review should be recorded separately.</p>
+      </section>
+      <div className="inline-action">
+        <Link className="button button-outline" to="/assessment">Review the assessment form <Icon name="arrow" size={16} /></Link>
+        <Link className="button" to="/methodology">Review measured results <Icon name="arrow" size={16} /></Link>
+      </div>
     </div>
   )
 }
@@ -727,14 +975,14 @@ function Dashboard() {
 }
 
 const assessmentFields = [
-  { id: 'age', label: 'Age', type: 'number', unit: 'years', min: '20', max: '120', placeholder: 'e.g. 45', autocomplete: 'off' },
-  { id: 'sex', label: 'Sex (as recorded by NHANES)', type: 'select', options: ['Female', 'Male'] },
-  { id: 'bmi', label: 'Body mass index (BMI)', type: 'number', unit: 'kg/m²', min: '0', step: '0.1', placeholder: 'e.g. 26.4', autocomplete: 'off' },
-  { id: 'hypertension', label: 'Ever told you had high blood pressure?', type: 'select', options: ['Yes', 'No'] },
-  { id: 'heart-disease', label: 'Ever told you had coronary heart disease?', type: 'select', options: ['Yes', 'No'] },
-  { id: 'glucose', label: 'Fasting blood glucose', type: 'number', unit: 'mg/dL', min: '0', step: '0.1', placeholder: 'e.g. 98', autocomplete: 'off' },
-  { id: 'hba1c', label: 'HbA1c', type: 'number', unit: '%', min: '0', step: '0.1', placeholder: 'e.g. 5.6', autocomplete: 'off' },
-  { id: 'smoking', label: 'Cigarette smoking history', type: 'select', options: ['Never', 'Former', 'Current'] },
+  { id: 'age', label: 'Age', type: 'number', unit: 'years', min: '20', max: '120', placeholder: 'e.g. 45', autocomplete: 'off', help: 'Study input range: 20–120 years.' },
+  { id: 'sex', label: 'Sex (as recorded by NHANES)', type: 'select', options: ['Female', 'Male'], help: 'Choose one of the categories used in the model schema.' },
+  { id: 'bmi', label: 'Body mass index (BMI)', type: 'number', unit: 'kg/m²', min: '0', step: '0.1', placeholder: 'e.g. 26.4', autocomplete: 'off', help: 'Enter a positive value in kilograms per square metre.' },
+  { id: 'hypertension', label: 'Ever told you had high blood pressure?', type: 'select', options: ['Yes', 'No'], help: 'Select the recorded questionnaire category.' },
+  { id: 'heart-disease', label: 'Ever told you had coronary heart disease?', type: 'select', options: ['Yes', 'No'], help: 'Select the recorded questionnaire category.' },
+  { id: 'glucose', label: 'Fasting blood glucose', type: 'number', unit: 'mg/dL', min: '0', step: '0.1', placeholder: 'e.g. 98', autocomplete: 'off', help: 'Enter a positive fasting glucose value in mg/dL.' },
+  { id: 'hba1c', label: 'HbA1c', type: 'number', unit: '%', min: '0', step: '0.1', placeholder: 'e.g. 5.6', autocomplete: 'off', help: 'Enter a positive percentage value.' },
+  { id: 'smoking', label: 'Cigarette smoking history', type: 'select', options: ['Never', 'Former', 'Current'], help: 'Choose the category that matches the dataset field.' },
 ]
 
 const featureLabels = {
@@ -815,7 +1063,7 @@ function Assessment() {
   return (
     <div className="content-page assessment-page">
       <PageIntro eyebrow="RESEARCH ASSESSMENT" title="Research input form." description="A valid submission is sent to the configured research service. If the model or service is unavailable, an error is shown instead of an invented result." />
-      <Notice>Faith Clinic's diabetes assessment provides research-based model predictions and educational information. It does not establish a medical diagnosis. Consult a qualified healthcare professional for appropriate testing, assessment, and treatment.</Notice>
+      <Notice>{MEDICAL_DISCLAIMER}</Notice>
       <div className="assessment-layout">
         <form className="form-card assessment-form" noValidate onSubmit={handleSubmit}>
           <div className="form-heading"><span className="eyebrow">ASSESSMENT FIELDS</span><h2>Enter the study fields</h2><p>Required values are sent to the configured Flask API for processing. They are held in page memory only and are not written to browser storage.</p></div>
@@ -825,15 +1073,16 @@ function Assessment() {
                 <label htmlFor={field.id}>{field.label} <span aria-hidden="true">*</span></label>
                 <div className={`input-with-unit ${field.type === 'select' ? 'select-wrap' : ''}`}>
                   {field.type === 'select' ? (
-                    <select defaultValue="" id={field.id} name={field.id} required>
+                    <select aria-describedby={`${field.id}-help`} defaultValue="" id={field.id} name={field.id} required>
                       <option disabled value="">Select an option</option>
                       {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
                     </select>
                   ) : (
-                    <input autoComplete={field.autocomplete} id={field.id} max={field.max} min={field.min} name={field.id} placeholder={field.placeholder} required step={field.step || '1'} type="number" />
+                    <input aria-describedby={`${field.id}-help`} autoComplete={field.autocomplete} id={field.id} max={field.max} min={field.min} name={field.id} placeholder={field.placeholder} required step={field.step || '1'} type="number" />
                   )}
                   {field.unit && <span className="input-unit">{field.unit}</span>}
                 </div>
+                <p className="field-help" id={`${field.id}-help`}>{field.help}</p>
               </div>
             ))}
           </div>
@@ -885,7 +1134,6 @@ function Results() {
   const prediction = report?.prediction
   const explanation = report?.explanation
   const predictionDisplay = getPredictionDisplay(prediction)
-  const classProbabilities = predictionDisplay.classProbabilities
   const modelStatusLabel = backend.loading
     ? 'Checking status'
     : !backend.online
@@ -1025,38 +1273,6 @@ function Results() {
                   : predictionDisplay.isNegative
                     ? 'The model placed the submitted fields in the class associated with no previously self-reported diabetes diagnosis in the research data. This does not rule out diabetes.'
                     : 'The model response did not include a recognized research class, so its result cannot be interpreted here.'}</p>
-                {classProbabilities
-                  ? <figure aria-label="Uncalibrated model output scores for the two research classes" className="class-probability-chart">
-                      <figcaption>Class probability outputs (uncalibrated)</figcaption>
-                      <div className="class-probability-row">
-                        <div className="class-probability-label"><span>Positive class</span><strong>{classProbabilities.positivePercentage}</strong></div>
-                        <div
-                          aria-label="Positive class model output percentage"
-                          aria-valuemax="100"
-                          aria-valuemin="0"
-                          aria-valuenow={(classProbabilities.positive * 100).toFixed(1)}
-                          className="class-probability-track"
-                          role="meter"
-                        >
-                          <span className="class-probability-fill positive" style={{ width: `${classProbabilities.positive * 100}%` }} />
-                        </div>
-                      </div>
-                      <div className="class-probability-row">
-                        <div className="class-probability-label"><span>Negative class</span><strong>{classProbabilities.negativePercentage}</strong></div>
-                        <div
-                          aria-label="Negative class model output percentage"
-                          aria-valuemax="100"
-                          aria-valuemin="0"
-                          aria-valuenow={(classProbabilities.negative * 100).toFixed(1)}
-                          className="class-probability-track"
-                          role="meter"
-                        >
-                          <span className="class-probability-fill negative" style={{ width: `${classProbabilities.negative * 100}%` }} />
-                        </div>
-                      </div>
-                      <p className="probability-chart-note">These are uncalibrated model outputs, not calibrated probabilities of having diabetes or clinical risk estimates.</p>
-                    </figure>
-                  : <p className="probability-chart-note">Both valid class probabilities were not returned by the API, so no chart or percentages are estimated.</p>}
                 <p>These classifications concern previous self-reported diagnosis only. A positive result is not a clinical diagnosis, and a negative result does not rule out diabetes or replace appropriate testing by a qualified healthcare professional.</p>
               </div>
             : <p className="report-result-context">No patient-specific information or assessment date is included in this report.</p>}
@@ -1184,7 +1400,7 @@ function Results() {
 
         <section aria-labelledby="safety-title" className="report-safety">
           <span className="report-safety-icon"><Icon name="shield" size={22} /></span>
-          <div><h2 id="safety-title">Important medical disclaimer</h2><p>Faith Clinic's diabetes assessment provides research-based model predictions and educational information. It does not establish a medical diagnosis. The model was developed to classify self-reported previous diabetes diagnosis in a research dataset; it was not designed or clinically validated to diagnose current diabetes or predict future onset. Do not use its output to make health or treatment decisions. Consult a qualified healthcare professional for appropriate testing, assessment, and treatment.</p></div>
+          <div><h2 id="safety-title">Important medical disclaimer</h2><p>{MEDICAL_DISCLAIMER}</p><p>The model was developed to classify self-reported previous diabetes diagnosis in a research dataset; it was not designed or clinically validated to diagnose current diabetes or predict future onset.</p></div>
         </section>
 
         <footer className="report-researcher">
@@ -1307,14 +1523,21 @@ function NotFound() {
 }
 
 function AppLayout() {
+  const location = useLocation()
+  const isStaffWorkspace = location.pathname === '/staff' || location.pathname.startsWith('/staff/')
+
   return (
     <div className="app-shell">
-      <Header />
+      {!isStaffWorkspace && <Header />}
       <main id="main-content">
         <Routes>
+          <Route element={<StaffWorkspace />} path="/staff/*" />
           <Route element={<Home />} path="/" />
           <Route element={<Education />} path="/education" />
           <Route element={<About />} path="/about" />
+          <Route element={<Methodology />} path="/methodology" />
+          <Route element={<Explainability />} path="/explainability" />
+          <Route element={<Validation />} path="/validation" />
           <Route element={<Services />} path="/services" />
           <Route element={<Contact />} path="/contact" />
           <Route element={<AuthPage mode="signup" />} path="/signup" />
@@ -1326,7 +1549,7 @@ function AppLayout() {
           <Route element={<NotFound />} path="*" />
         </Routes>
       </main>
-      <Footer />
+      {!isStaffWorkspace && <Footer />}
     </div>
   )
 }

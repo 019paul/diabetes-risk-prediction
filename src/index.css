@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #233b50;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -11,7 +11,23 @@
   --teal: #287f78;
   --teal-dark: #206b66;
   --teal-soft: #eaf5f2;
+  --text-primary: #233b50;
+  --text-secondary: #647785;
+  --surface: #ffffff;
+  --surface-subtle: #f4f8f8;
   --line: #e7edef;
+  --status-success-text: #28665b;
+  --status-success-background: #e5f3ed;
+  --status-warning-text: #735a23;
+  --status-warning-background: #fbf3df;
+  --status-error-text: #8a3d34;
+  --status-error-background: #fbebe8;
+  --focus-ring: rgba(38, 127, 120, 0.35);
+  --radius-card: 12px;
+  --space-1: 6px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
 }
 
 * {
@@ -27,7 +43,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #fff;
+  background: var(--surface);
 }
 
 button,
@@ -50,7 +66,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(38, 127, 120, 0.35);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
