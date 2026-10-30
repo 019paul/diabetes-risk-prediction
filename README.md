@@ -5,7 +5,7 @@ React/Vite frontend with a separate Flask API. This research and educational ser
 ## Current truthful status
 
 - The public home page and “Learn and Live Well” education centre are informational only. The centre provides general diabetes, healthy eating, lifestyle, and FAQ content with links to WHO, IDF, NIDDK, and CDC sources. The project is not a clinical management platform: it does not provide ongoing glucose monitoring, clinician messaging, appointments, or emergency monitoring. Do not enter real patient health information.
-- Patient/staff roles, clinician assignments, clinical record storage, and multilingual support are not implemented. Existing Supabase authentication and prediction-history functionality must not be treated as authorization for clinical records.
+- Hospital staff roles, clinician assignments, clinical record storage, and multilingual support are not implemented. The `/staff` workspace is a separate, in-memory demonstration using synthetic records only; it has no staff authentication or backend authorization. Existing Supabase authentication and prediction-history functionality must not be treated as authorization for clinical records.
 - Education copy links to reputable public-health information from the World Health Organization, International Diabetes Federation, NIDDK, and CDC. It is general information, not individualized clinical guidance.
 - Flask health, model-information, exploration, prediction, and explanation routes are implemented.
 - The prepared NHANES dataset and the matching Random Forest model/evaluation artifacts are present in `backend/data/processed` and `backend/model_artifacts`. The API validates the model bundle against its evaluation metadata before serving results.
@@ -15,6 +15,24 @@ React/Vite frontend with a separate Flask API. This research and educational ser
 - The results page prefers the official Nigeria Health Facility Registry API when its approved API key is configured on the backend. Without a key or when the registry is unavailable, it can fall back to OpenStreetMap community listings, which are clearly labelled as unverified.
 - Supabase Auth and row-level-secured history code and migration are implemented. They are not connected until the user configures a Supabase project, applies the migration, and provides local frontend credentials.
 - Assessment fields are held in memory while submitting. They are not written to localStorage/sessionStorage. History saving is optional and stores only the predicted class, model version, user id, and database timestamp; uncalibrated model probabilities are neither saved nor displayed.
+
+## Research pages
+
+The public navigation includes:
+
+- **About Research** (`/about`) — project aim, scope, architecture, and limitations.
+- **Methodology** (`/methodology`) — the implemented and planned workflow, plus evaluation data returned by the live Flask API.
+- **Risk Prediction** (`/assessment`) — the existing validated form and research-only result flow.
+- **Model Explainability** (`/explainability`) — the distinction between global importance and individual SHAP explanations.
+- **Validation** (`/validation`) — live API/model/SHAP readiness and a checklist that leaves unrun checks marked Not Tested.
+
+The validation page does not send synthetic predictions. Its `PASS`, `FAIL`, `NOT TESTED`, and `BLOCKED` statuses distinguish live API checks from unrun browser checks and unavailable clinical workflows. A passing model-artifact check is not clinical validation; responsive, accessibility, and end-to-end checks need separate review. The exact academic-use disclaimer is shown on the home, assessment, explainability, and result pages.
+
+Faith Clinic contact details: phone and WhatsApp `07068432364`, email `olufunsho19@gmail.com`. WhatsApp uses the requested URL `https://wa.me/2347068432364`.
+
+## Hospital workspace prototype
+
+Open `/staff` to preview a separate patient registration and directory interface. It is a UI prototype only: seeded and newly entered records are synthetic, exist in application memory only, and reset when the page is reloaded. Do not enter real patient information. There is no public patient registration, real staff login, authorization, patient API, database persistence, diagnosis, laboratory interpretation, or connection to hospital systems. Demographic fields and options are provisional and await hospital approval. This prototype is not suitable for clinical use.
 
 ## Frontend
 
@@ -46,7 +64,9 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 .\.venv\Scripts\python.exe run.py
 ```
 
-If `backend\.venv` does not exist, create it once with `py -3 -m venv .venv`. `backend/.env` is loaded using a path relative to the backend code, and relative artifact directories are resolved from `backend` rather than the shell's working directory. Do not expose the development Flask server to the public internet.
+If `backend\.venv` does not exist, create it once with `py -3 -m venv .venv`. `backend/.env` is loaded using a path relative to the backend code, and relative artifact directories are resolved from `backend` rather than the shell's working directory. Configuration is validated at app creation; errors name the setting but never echo its value. The development server accepts only loopback hosts and must not be exposed to the public internet.
+
+PostgreSQL connectivity is optional. `DATABASE_URL` may be set in `backend/.env` to a PostgreSQL/Supabase connection URL, and `DATABASE_CONNECT_TIMEOUT_SECONDS` controls the bounded probe timeout (default 3 seconds). Psycopg 3 is installed by `requirements.txt`. Without `DATABASE_URL`, the research API runs normally and `GET /api/health/database` reports `not_configured`; when configured, that endpoint performs a minimal `SELECT 1` readiness check. It does not create tables, run migrations, or establish that a database is approved for clinical data. This project has not been authorized to connect to the remote database.
 
 If `/api/explain/status` says SHAP is not installed, install the existing machine-learning requirements from the backend folder:
 
@@ -57,13 +77,22 @@ If `/api/explain/status` says SHAP is not installed, install the existing machin
 Useful routes:
 
 - `GET /api/health`
+- `GET /api/health/database`
 - `GET /api/model/info`
 - `GET /api/model/exploration`
 - `GET /api/explain/status`
 - `POST /api/predict`
 - `POST /api/explain`
 
-The model registry validates matching model and evaluation artifacts before prediction or explanation. If either artifact is missing or invalid, the API returns an unavailable status and does not invent metrics or results.
+The model registry validates matching model and evaluation artifacts before prediction or explanation. If either artifact is missing or invalid, the API returns an unavailable status and does not invent metrics or results. Responses include an `X-Request-ID` header. HTTP errors use a safe JSON response; logs include request ID, method, route template, status, and fixed error events, not request bodies, query strings, tokens, connection URLs, or exception messages.
+
+### Supabase authentication verification
+
+The browser Supabase Auth integration remains the separate public research signup/sign-in flow. The Flask backend does not require authentication for research prediction, SHAP, model-information, or health routes. Its authenticated identity endpoint, `GET /api/auth/me`, accepts a bearer access token and verifies it by calling the configured Supabase Auth `/auth/v1/user` endpoint with the backend-configured public anon/publishable key. The request uses a bounded timeout; tokens and upstream error details are not returned or logged.
+
+For local backend verification, configure both `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `backend/.env`, using the project URL and public anon/publishable key. `SUPABASE_AUTH_TIMEOUT_SECONDS` defaults to 3 seconds. Keep these values backend-only; never use a service-role key or JWT signing secret. If this configuration is missing, `/api/auth/me` fails closed with a service-unavailable response while the research API remains usable.
+
+Authentication proves only that Supabase validated a user session. It does **not** authorize staff access. Staff access remains denied until a trusted, hospital-approved administrator provisioning and authorization mechanism is implemented. No hospital roles or permissions are defined here. Public research signup does not grant staff privileges.
 
 ## Facility search and privacy
 
@@ -72,6 +101,14 @@ The official registry API supports proximity searches and reports registration s
 Until that key is configured, the finder can use the public Photon geocoder and OpenStreetMap Overpass service. A manually entered place is sent to Photon; when a user chooses current location, approximate coordinates are sent through the backend to the registry and, if unavailable, to Overpass. The website does not save location values. Community map listings are not registration verification, and their straight-line distances are approximate. Public services may be unavailable or have usage limits. Registration can be checked directly with the [Nigeria Health Facility Registry](https://hfr.fmohconnect.gov.ng/).
 
 The model is for academic research and education only. It does not establish a medical diagnosis or provide treatment advice. A qualified healthcare professional should provide appropriate testing, assessment, and treatment.
+
+## Hospital deployment readiness
+
+The evidence supports **technical-demonstration readiness only**; this repository is **not ready for clinical use or real patient records**. The app has no patient-record system, laboratory diagnostic pathway, clinician roles or review workflow, clinical audit trail, or approved follow-up process. Optional Supabase sign-in and row-level-secured prediction history protect only a minimal user-owned research summary; they do not authorize staff or protect the Flask prediction and explanation endpoints.
+
+The local model is a research classifier trained on US NHANES 2017–2018 complete cases, with self-reported previous diagnosis as its target. It is not a model for future diabetes onset, a diagnostic test, or evidence of performance in Nigerian patients. Clinical use would require a separately approved protocol, representative data and reference standards, calibration and subgroup evaluation, independent clinical review, and applicable hospital and regulator approvals.
+
+Before any real-world deployment, qualified privacy, security, clinical, and regulatory reviewers must determine the applicable Nigeria Data Protection Act (NDPA) and healthcare/medical-device obligations; establish lawful processing, access controls, retention, incident response, and audit requirements; and approve the clinical workflow. This README is not a compliance determination. Production hosting, HTTPS, a production WSGI server, monitoring, backups, recovery, and operational approvals are also not configured here. Do not expose the local Flask server publicly or submit real patient data.
 
 ## Supabase setup
 
@@ -137,6 +174,7 @@ No new dataset was downloaded. Do not load model artifacts from untrusted source
 ```powershell
 npm.cmd run build
 npm.cmd run lint
+npm.cmd test
 Set-Location .\backend
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
 ```

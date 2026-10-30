@@ -1,6 +1,5 @@
 import io
 import json
-import os
 import re
 import tempfile
 import unittest
@@ -9,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app import create_app
+from app.database import DatabaseReadiness
 from app.validation import FEATURE_COLUMNS
 
 
@@ -37,6 +37,57 @@ class ApiStatusTests(unittest.TestCase):
         self.assertEqual(response.json["model_status"], "not_ready")
         self.assertIn("missing", response.json["model_error"])
 
+    def test_database_health_reports_optional_database_as_not_configured(self):
+        response = self.client.get("/api/health/database")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["status"], "not_configured")
+        self.assertFalse(response.json["database"]["configured"])
+
+    def test_database_health_reports_readiness_without_exposing_connection_url(self):
+        app = create_app(
+            {
+                "TESTING": True,
+                "MODEL_ARTIFACT_DIR": self.artifact_directory.name,
+                "DATABASE_URL": "postgresql://test:secret@localhost/test",
+            }
+        )
+        client = app.test_client()
+        with patch(
+            "app.routes.health.check_database_connection",
+            return_value=DatabaseReadiness(status="ready", configured=True),
+        ) as check_connection:
+            response = client.get("/api/health/database")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["status"], "ready")
+        self.assertNotIn("secret", response.get_data(as_text=True))
+        check_connection.assert_called_once_with(
+            "postgresql://test:secret@localhost/test",
+            3,
+        )
+
+    def test_existing_api_routes_remain_registered(self):
+        routes = {
+            (rule.rule, method)
+            for rule in self.app.url_map.iter_rules()
+            for method in rule.methods
+            if method in {"GET", "POST"}
+        }
+
+        self.assertTrue(
+            {
+                ("/api/facilities/nearby", "POST"),
+                ("/api/health", "GET"),
+                ("/api/health/database", "GET"),
+                ("/api/model/info", "GET"),
+                ("/api/model/exploration", "GET"),
+                ("/api/explain/status", "GET"),
+                ("/api/predict", "POST"),
+                ("/api/explain", "POST"),
+            }.issubset(routes)
+        )
+
     def test_health_and_model_information_report_the_same_registry_status(self):
         health = self.client.get("/api/health")
         information = self.client.get("/api/model/info")
@@ -59,7 +110,7 @@ class ApiStatusTests(unittest.TestCase):
         self.assertEqual(Path(app.config["MODEL_ARTIFACT_DIR"]), expected.resolve())
 
     def test_facility_registry_requires_an_api_key_without_exposing_credentials(self):
-        with patch.dict(os.environ, {"HFR_API_KEY": ""}):
+        with patch.dict(self.app.config, {"HFR_API_KEY": ""}):
             response = self.client.post(
                 "/api/facilities/nearby",
                 json={"latitude": 9.05, "longitude": 7.49},
@@ -101,9 +152,9 @@ class ApiStatusTests(unittest.TestCase):
             },
         }
         with (
-            patch.dict(os.environ, {"HFR_API_KEY": "test-secret"}),
+            patch.dict(self.app.config, {"HFR_API_KEY": "test-secret"}),
             patch(
-                "app.urlopen",
+                "app.routes.facilities.urlopen",
                 return_value=io.BytesIO(json.dumps(upstream).encode()),
             ) as urlopen_mock,
         ):
@@ -124,8 +175,11 @@ class ApiStatusTests(unittest.TestCase):
     def test_facility_registry_rejects_unexpected_upstream_schema(self):
         upstream = {"status": "success", "data": {"facilities": "not-a-list"}}
         with (
-            patch.dict(os.environ, {"HFR_API_KEY": "test-secret"}),
-            patch("app.urlopen", return_value=io.BytesIO(json.dumps(upstream).encode())),
+            patch.dict(self.app.config, {"HFR_API_KEY": "test-secret"}),
+            patch(
+                "app.routes.facilities.urlopen",
+                return_value=io.BytesIO(json.dumps(upstream).encode()),
+            ),
         ):
             response = self.client.post(
                 "/api/facilities/nearby",
